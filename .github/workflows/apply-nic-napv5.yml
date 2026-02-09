@@ -18,6 +18,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Normalize S3 bucket name
+        run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -62,6 +65,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Normalize S3 bucket name
+        run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -111,6 +117,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Normalize S3 bucket name
+        run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -158,6 +167,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Normalize S3 bucket name
+        run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -211,6 +223,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Normalize S3 bucket name
+      run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v3
@@ -351,6 +366,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Normalize S3 bucket name
+        run: echo "TF_VAR_AWS_S3_BUCKET_NAME=$(echo "$TF_VAR_AWS_S3_BUCKET_NAME" | xargs)" >> $GITHUB_ENV
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
