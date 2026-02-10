@@ -75,7 +75,8 @@ resource "aws_eks_addon" "cluster-addons" {
   for_each       = { for addon in var.eks_addons : addon.name => addon }
   cluster_name   = aws_eks_cluster.eks-tf.id
   addon_name     = each.value.name
-  resolve_conflicts = "OVERWRITE"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
   
   # Add service account role ARN for EBS CSI driver
   service_account_role_arn = each.value.name == "aws-ebs-csi-driver" ? aws_iam_role.ebs_csi_driver.arn : null
