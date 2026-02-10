@@ -23,7 +23,7 @@ provider "helm" {
     host                   = data.terraform_remote_state.eks.outputs.cluster_endpoint
     cluster_ca_certificate = base64decode(data.terraform_remote_state.eks.outputs.kubeconfig-certificate-authority-data)
     token                  = data.aws_eks_cluster_auth.auth.token
-    exec {
+    exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
       args = [
