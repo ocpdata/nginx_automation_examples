@@ -7,5 +7,6 @@ locals {
   aws_region              = data.terraform_remote_state.infra.outputs.aws_region
   host                    = data.terraform_remote_state.eks.outputs.cluster_endpoint
   cluster_ca_certificate  = data.terraform_remote_state.eks.outputs.kubeconfig-certificate-authority-data
+  helm_prefix             = trim(replace(lower(local.project_prefix), "_", "-"), "-")
   app                     = format("%s-nap-%s", local.project_prefix, local.build_suffix)
 }

@@ -1,5 +1,5 @@
 resource "helm_release" "nginx-plus-ingress" {
-  name       = format("%s-nap-%s", local.project_prefix, local.build_suffix)
+  name       = format("%s-nap-%s", local.helm_prefix, local.build_suffix)
   repository = "https://helm.nginx.com/stable"
   chart      = "nginx-ingress"
   version    = "2.0.1"
