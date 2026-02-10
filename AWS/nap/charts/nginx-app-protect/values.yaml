@@ -58,3 +58,51 @@ controller:
     imagePullSecretName: regcred
 prometheus:
   create: true
+# ---
+# Configuración para agregar el sidecar nginx-agent
+# y el volumen asociado para logs del agente
+sidecars:
+  - name: nginx-agent
+    image: "nginx/nginx-agent:latest"
+    env:
+      - name: DATA_PLANE_KEY
+        value: "TU_TOKEN_AQUI"
+    volumeMounts:
+      - name: varlog
+        mountPath: /var/log/nginx-agent
+    resources:
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+    securityContext:
+      runAsUser: 0
+      allowPrivilegeEscalation: false
+# Volumen para logs del sidecar nginx-agent
+extraVolumes:
+  - name: varlog
+    emptyDir: {}
+sidecars:
+  - name: nginx-agent
+    image: "nginx/nginx-agent:latest"
+    env:
+      - name: DATA_PLANE_KEY
+        value: "TU_TOKEN_AQUI"
+    volumeMounts:
+      - name: varlog
+        mountPath: /var/log/nginx-agent
+    resources:
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+    securityContext:
+      runAsUser: 0
+      allowPrivilegeEscalation: false
+extraVolumes:
+  - name: varlog
+    emptyDir: {}
