@@ -32,7 +32,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=$TF_VAR_AWS_S3_BUCKET_NAME" \
             -backend-config="region=$TF_VAR_AWS_REGION"
 
@@ -82,7 +82,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=$TF_VAR_AWS_S3_BUCKET_NAME" \
             -backend-config="region=$TF_VAR_AWS_REGION"
 
@@ -113,7 +113,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=$TF_VAR_AWS_S3_BUCKET_NAME" \
             -backend-config="region=$TF_VAR_AWS_REGION"
 
@@ -169,7 +169,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=$TF_VAR_AWS_S3_BUCKET_NAME" \
             -backend-config="region=$TF_VAR_AWS_REGION"
 
@@ -216,7 +216,7 @@ jobs:
 
       - name: Terraform Init
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="bucket=$TF_VAR_AWS_S3_BUCKET_NAME" \
             -backend-config="region=$TF_VAR_AWS_REGION"
 
@@ -238,7 +238,6 @@ jobs:
       - name: Terraform Destroy
         if: github.event_name == 'push' && github.ref == 'refs/heads/destroy-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
         run: terraform destroy -auto-approve -input=false -lock=false
-
 
   terraform_S3:
     name: "Delete S3/DynamoDB"
@@ -271,7 +270,7 @@ jobs:
         run: |
           set -e
           BUCKET_NAME="${{ steps.set_bucket.outputs.bucket_name }}"
-          
+
           # 1. Delete all object versions (with null checks)
           echo "🔥 Deleting ALL object versions..."
           versions=$(aws s3api list-object-versions --bucket $BUCKET_NAME --output json || echo '{"Versions":[],"DeleteMarkers":[]}')
@@ -279,22 +278,22 @@ jobs:
           if [ "$(echo $versions_to_delete | jq '.Objects | length')" -gt 0 ]; then
             aws s3api delete-objects --bucket $BUCKET_NAME --delete "$versions_to_delete" || true
           fi
-          
+
           # 2. Delete all delete markers (with null checks)
           echo "🗑️ Deleting ALL delete markers..."
           markers_to_delete=$(echo $versions | jq '{Objects: [.DeleteMarkers[]? | {Key:.Key, VersionId:.VersionId}]}' || echo '{"Objects":[]}')
           if [ "$(echo $markers_to_delete | jq '.Objects | length')" -gt 0 ]; then
             aws s3api delete-objects --bucket $BUCKET_NAME --delete "$markers_to_delete" || true
           fi
-          
+
           # 3. Force delete any remaining objects
           echo "💥 Force deleting any remaining objects..."
           aws s3 rm s3://$BUCKET_NAME --recursive --include "*" || true
-          
+
           # 4. Delete bucket
           echo "🚀 Deleting bucket..."
           aws s3api delete-bucket --bucket $BUCKET_NAME || true
-          
+
           # 5. Final verification
           if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
             echo "::error::Bucket $BUCKET_NAME still exists after deletion attempts!"
@@ -346,7 +345,7 @@ jobs:
       - name: Verify Deletion
         run: |
           echo "✅ Verification:"
-          
+
           # Verify S3 bucket
           BUCKET_NAME="${{ steps.set_bucket.outputs.bucket_name }}"
           if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
@@ -355,7 +354,7 @@ jobs:
           else
             echo "Bucket $BUCKET_NAME deleted successfully"
           fi
-          
+
           # Verify DynamoDB table
           TABLE_NAME="terraform-lock-table"
           if aws dynamodb describe-table --table-name "$TABLE_NAME" 2>/dev/null; then
@@ -364,7 +363,7 @@ jobs:
           else
             echo "Table $TABLE_NAME deleted successfully"
           fi
-          
+
           # Verify IAM resources
           if aws iam get-policy --policy-arn "arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/TerraformStateAccess" 2>/dev/null; then
             echo "::error::IAM Policy still exists!"
@@ -372,7 +371,7 @@ jobs:
           else
             echo "IAM Policy deleted successfully"
           fi
-          
+
           if aws iam get-role --role-name "TerraformCIExecutionRole" 2>/dev/null; then
             echo "::error::IAM Role still exists!"
             exit 1
