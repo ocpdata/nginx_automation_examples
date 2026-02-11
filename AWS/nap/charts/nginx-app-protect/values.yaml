@@ -69,7 +69,7 @@ controller:
       image: "nginx/nginx-agent:latest"
       env:
         - name: DATA_PLANE_KEY
-          value: "TU_TOKEN_AQUI"
+          value: "asvHvO2/oh3gGHXcNa+RvHEzsm8xl/5PFs/PD+Ofy/k="
       volumeMounts:
         - name: nginx-agent-logs
           mountPath: /var/log/nginx-agent
