@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-agent-config
+  namespace: nginx-agent
+data:
+  nginx-agent.conf: |
+    server {
+      api_protocol: "https"
+      api_host: "<fqdn-control-plane-nginx-one>"   # ej: instance-manager.example.com
+      api_port: 443
+      dataplane_key_file: "/etc/nginx-agent/dataplane.key"
+    }
+
+    nginx {
+      config_path: "/etc/nginx"
+      log_directories: ["/var/log/nginx"]
+    }
+
+    nginx_app_protect {
+      enable: true
+    }
+
+    nap_monitoring {
+      enable: true
+    }

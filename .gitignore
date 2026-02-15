@@ -1,1 +1,4 @@
-#
+# Local sensitive files to ignore
+nginx-repo.crt
+nginx-repo.key
+workflow-22028638111.log

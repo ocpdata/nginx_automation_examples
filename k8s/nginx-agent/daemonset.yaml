@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx-agent
+  namespace: nginx-agent
+  labels:
+    app: nginx-agent
+spec:
+  selector:
+    matchLabels:
+      app: nginx-agent
+  template:
+    metadata:
+      labels:
+        app: nginx-agent
+    spec:
+      serviceAccountName: nginx-agent
+      containers:
+        - name: nginx-agent
+          image: private-registry.nginx.com/nginx-plus/agent:nginx-plus-r31-alpine-3.19
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: dataplane-key
+              mountPath: /etc/nginx-agent
+              readOnly: true
+            - name: nginx-conf
+              mountPath: /etc/nginx
+              readOnly: true
+            - name: nginx-logs
+              mountPath: /var/log/nginx
+              readOnly: true
+            - name: agent-config
+              mountPath: /etc/nginx-agent/conf.d
+              readOnly: true
+      volumes:
+        - name: dataplane-key
+          secret:
+            secretName: nginx-agent-dataplane-key
+        - name: nginx-conf
+          hostPath:
+            # Ajustar según cómo tu NIC/WAF expongan config en los nodos
+            path: /etc/nginx
+            type: DirectoryOrCreate
+        - name: nginx-logs
+          hostPath:
+            path: /var/log/nginx
+            type: DirectoryOrCreate
+        - name: agent-config
+          configMap:
+            name: nginx-agent-config
+            items:
+              - key: nginx-agent.conf
+                path: nginx-agent.conf
