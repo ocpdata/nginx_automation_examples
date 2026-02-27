@@ -1,4 +1,4 @@
-name: "NGINX NIC/NAPV5 Destroy in Azure"
+name: "Destroy NGINX NIC/NAP-V5 in Azure"
 on:
   push:
     branches: az-destroy-nic-napv5
@@ -86,8 +86,24 @@ jobs:
           -backend-config="storage_account_name=${{ vars.storage_account_name}}" \
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
+      - name: Terraform Plan (Destroy)
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          terraform plan -destroy -no-color -input=false -lock=false -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+
+      - name: Check Changes
+        id: check_changes
+        run: |
+          if grep -q "No changes." plan.txt; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve -lock=false
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
+        run: terraform destroy -auto-approve -lock=false -input=false
 
   terraform_nap:
     name: "Destroy NGINX NIC/App Protect"
