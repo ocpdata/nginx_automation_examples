@@ -2,6 +2,7 @@ name: " Deploy NGINX NIC/NAP-V5 in Azure"
 on:
   push:
     branches: az-apply-nic-napv5
+  workflow_dispatch:
 env:
     TF_VAR_project_prefix : ${{ vars.project_prefix }}
     TF_VAR_azure_region: ${{ vars.azure_region }}
@@ -46,7 +47,7 @@ jobs:
           fi
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
 
 
@@ -80,7 +81,7 @@ jobs:
             -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
         - name: Terraform Plan
-          if: github.event_name == 'pull_request' || github.event_name == 'push'
+          if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
           run: |
             terraform plan -no-color -input=false -out=tfplan
             terraform show -no-color tfplan > plan.txt
@@ -95,7 +96,7 @@ jobs:
             fi
 
         - name: Terraform Apply
-          if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+          if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
           run: terraform apply -auto-approve tfplan
 
   terraform_aks:
@@ -127,7 +128,7 @@ jobs:
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
       - name: Terraform Plan
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -no-color -input=false  -out=tfplan
           terraform show -no-color tfplan > plan.txt
@@ -142,7 +143,7 @@ jobs:
           fi
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
 
   terraform_nap:
@@ -172,7 +173,7 @@ jobs:
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
       - name: Terraform Plan
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -no-color -input=false -lock=false -out=tfplan \
             -var="workspace_path=${{ env.WORKSPACE_PATH }}" \
@@ -192,7 +193,7 @@ jobs:
           fi
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform apply -auto-approve -lock=false tfplan
 
   terraform_policy:
@@ -332,7 +333,7 @@ jobs:
         fi
 
     - name: Terraform Apply
-      if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+      if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
       run: terraform apply -auto-approve tfplan
 
   terraform_arcadia:
@@ -365,7 +366,7 @@ jobs:
         run: terraform validate -no-color
 
       - name: Terraform Plan
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -no-color -input=false -out=tfplan
           terraform show -no-color tfplan > plan.txt
@@ -380,7 +381,7 @@ jobs:
           fi
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-apply-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
 
       - name: Get Terraform Outputs
