@@ -2,6 +2,7 @@ name: "NGINX NIC/NAPV5 Destroy in Azure"
 on:
   push:
     branches: az-destroy-nic-napv5
+  workflow_dispatch:
 env:
     TF_VAR_project_prefix : ${{ vars.project_prefix }}
     TF_VAR_azure_region: ${{ vars.azure_region }}
@@ -56,7 +57,7 @@ jobs:
           fi
 
       - name: Terraform Destroy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-destroy-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform destroy -auto-approve -lock=false -input=false
 
   terraform_policy:
@@ -133,7 +134,7 @@ jobs:
           fi
 
       - name: Terraform Destroy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-destroy-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: |
           terraform destroy -auto-approve -input=false -lock=false \
             -var="workspace_path=${{ env.WORKSPACE_PATH }}" \
@@ -169,7 +170,7 @@ jobs:
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
       - name: Terraform Plan (Destroy)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -destroy -no-color -input=false -out=tfplan -lock=false
           terraform show -no-color tfplan > plan.txt
@@ -184,7 +185,7 @@ jobs:
           fi
 
       - name: Terraform Destroy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-destroy-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform destroy -auto-approve -input=false -lock=false
 
   terraform_infra:
@@ -214,7 +215,7 @@ jobs:
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
       - name: Terraform Plan (Destroy)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -destroy -no-color -input=false -out=tfplan -lock=false
           terraform show -no-color tfplan > plan.txt
@@ -229,7 +230,7 @@ jobs:
           fi
 
       - name: Terraform Destroy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/az-destroy-nic-napv5' && steps.check_changes.outputs.has_changes == 'true'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && steps.check_changes.outputs.has_changes == 'true'
         run: terraform destroy -auto-approve -input=false -lock=false
 
 
