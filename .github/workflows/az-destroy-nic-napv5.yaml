@@ -42,7 +42,7 @@ jobs:
         run: terraform validate -no-color
 
       - name: Terraform Plan (Destroy)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -destroy -no-color -input=false -lock=false -out=tfplan
           terraform show -no-color tfplan > plan.txt
@@ -116,11 +116,13 @@ jobs:
           -backend-config="container_name=${{ vars.storage_account_name }}-container"
 
       - name: Terraform Plan (Destroy)
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           terraform plan -destroy -no-color -input=false -lock=false -out=tfplan \
             -var="workspace_path=${{ env.WORKSPACE_PATH }}" \
             -var="nginx_jwt=${{ secrets.NGINX_JWT }}" \
             -var="nginx_pwd=none"
+          terraform show -no-color tfplan > plan.txt
         env:
           WORKSPACE_PATH: "./azure/nap"
 
