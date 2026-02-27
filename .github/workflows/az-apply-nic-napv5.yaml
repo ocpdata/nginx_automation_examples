@@ -34,6 +34,32 @@ jobs:
         run: |
           terraform init
 
+      - name: Import existing resources into Terraform state
+        env:
+          RG_NAME: ${{ vars.project_prefix }}-rg
+          SA_NAME: ${{ vars.storage_account_name }}
+          CONTAINER_NAME: ${{ vars.storage_account_name }}-container
+        run: |
+          SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+          if az group show --name "$RG_NAME" &>/dev/null; then
+            echo "Resource group $RG_NAME exists, importing..."
+            terraform import azurerm_resource_group.rg \
+              /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME || true
+          fi
+
+          if az storage account show --name "$SA_NAME" --resource-group "$RG_NAME" &>/dev/null; then
+            echo "Storage account $SA_NAME exists, importing..."
+            terraform import azurerm_storage_account.storage_account \
+              /subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.Storage/storageAccounts/$SA_NAME || true
+          fi
+
+          if az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" &>/dev/null; then
+            echo "Storage container $CONTAINER_NAME exists, importing..."
+            terraform import azurerm_storage_container.storage_container \
+              https://$SA_NAME.blob.core.windows.net/$CONTAINER_NAME || true
+          fi
+
       - name: Terraform Plan
         run: terraform plan -no-color -input=false -out=tfplan
 
