@@ -1,31 +1,31 @@
-# Deploy & Destroy NGINX NIC / NAP-V5 in Azure
+# Despliegue y destrucción de NGINX NIC / NAP-V5 en Azure
 
-This document covers the GitHub Actions workflows to deploy and destroy a complete stack of NGINX Ingress Controller (NIC) with App Protect V5 (NAP) on Azure Kubernetes Service (AKS), including the Arcadia demo application.
+Este documento describe los workflows de GitHub Actions para desplegar y destruir un stack completo de NGINX Ingress Controller (NIC) con App Protect V5 (NAP) en Azure Kubernetes Service (AKS), incluyendo la aplicación de demo Arcadia.
 
 ---
 
-## Prerequisites
+## Requisitos previos
 
-### GitHub Variables (`vars`)
+### Variables de GitHub (`vars`)
 
-| Variable | Description | Example |
+| Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
-| `PROJECT_PREFIX` | Prefix for all Azure resource names | `proyaz` |
-| `AZURE_REGION` | Azure region to deploy resources | `centralus` |
-| `STORAGE_ACCOUNT_NAME` | Name of the Azure Storage Account for Terraform backend | `staz` |
+| `PROJECT_PREFIX` | Prefijo para todos los recursos de Azure | `proyaz` |
+| `AZURE_REGION` | Región de Azure donde se desplegarán los recursos | `centralus` |
+| `STORAGE_ACCOUNT_NAME` | Nombre de la Storage Account de Azure para el backend de Terraform | `staz` |
 
-### GitHub Secrets (`secrets`)
+### Secretos de GitHub (`secrets`)
 
-| Secret | Description |
-|--------|-------------|
-| `AZURE_CREDENTIALS` | Azure Service Principal JSON (see below) |
-| `NGINX_JWT` | NGINX license JWT token |
-| `NGINX_REPO_CRT` | NGINX private registry certificate (`nginx-repo.crt`) |
-| `NGINX_REPO_KEY` | NGINX private registry key (`nginx-repo.key`) |
+| Secreto | Descripción |
+|---------|-------------|
+| `AZURE_CREDENTIALS` | JSON del Service Principal de Azure (ver formato más abajo) |
+| `NGINX_JWT` | Token JWT de licencia de NGINX |
+| `NGINX_REPO_CRT` | Certificado del registro privado de NGINX (`nginx-repo.crt`) |
+| `NGINX_REPO_KEY` | Clave del registro privado de NGINX (`nginx-repo.key`) |
 
-### Azure Service Principal format
+### Formato del Service Principal de Azure
 
-The `AZURE_CREDENTIALS` secret must be a valid JSON object in this format:
+El secreto `AZURE_CREDENTIALS` debe ser un objeto JSON con el siguiente formato:
 
 ```json
 {
@@ -36,7 +36,7 @@ The `AZURE_CREDENTIALS` secret must be a valid JSON object in this format:
 }
 ```
 
-Generate it with:
+Generarlo con:
 
 ```bash
 az ad sp create-for-rbac \
@@ -48,22 +48,22 @@ az ad sp create-for-rbac \
 
 ---
 
-## Deploy
+## Despliegue
 
-### Workflow file
+### Archivo del workflow
 
 `.github/workflows/az-apply-nic-napv5.yaml`
 
-### Triggers
+### Disparadores
 
-| Trigger | Description |
-|---------|-------------|
-| `push` to `az-apply-nic-napv5` branch | Automatic execution on push |
-| `workflow_dispatch` | Manual execution from GitHub Actions UI |
+| Disparador | Descripción |
+|------------|-------------|
+| `push` a la rama `az-apply-nic-napv5` | Ejecución automática al hacer push |
+| `workflow_dispatch` | Ejecución manual desde la interfaz de GitHub Actions |
 
-### Architecture
+### Arquitectura
 
-The workflow deploys the following infrastructure in sequence:
+El workflow despliega la siguiente infraestructura en secuencia:
 
 ```
 terraform_blob → terraform_infra → terraform_aks → terraform_nap → terraform_policy → terraform_arcadia
@@ -71,109 +71,109 @@ terraform_blob → terraform_infra → terraform_aks → terraform_nap → terra
 
 ### Jobs
 
-#### 1. `terraform_blob` — Deploy Blob Storage
-**Directory:** `azure/blob`
+#### 1. `terraform_blob` — Desplegar Blob Storage
+**Directorio:** `azure/blob`
 
-Creates the Azure Resource Group and Blob Storage Account/Container used as the remote Terraform backend for all subsequent jobs.
+Crea el Resource Group de Azure y la Storage Account/Container de Blob usados como backend remoto de Terraform por todos los jobs siguientes.
 
-- Uses **local state** (no remote backend)
-- Automatically imports pre-existing resources into the Terraform state to avoid conflicts on re-runs
-- Resources created:
+- Usa **estado local** (sin backend remoto)
+- Importa automáticamente recursos preexistentes al estado de Terraform para evitar conflictos en re-ejecuciones
+- Recursos creados:
   - Resource Group: `<PROJECT_PREFIX>-rg`
   - Storage Account: `<STORAGE_ACCOUNT_NAME>`
   - Blob Container: `<STORAGE_ACCOUNT_NAME>-container`
 
-#### 2. `terraform_infra` — Deploy Azure Infrastructure
-**Directory:** `azure/infra`
+#### 2. `terraform_infra` — Desplegar infraestructura de Azure
+**Directorio:** `azure/infra`
 
-Deploys the base Azure network infrastructure.
+Despliega la infraestructura de red base de Azure.
 
-- Uses remote backend (Blob Storage created in job 1)
-- Resources created:
+- Usa el backend remoto (Blob Storage creado en el job 1)
+- Recursos creados:
   - Virtual Network (VNet)
-  - Subnets
+  - Subredes
   - Network Security Groups
 
-#### 3. `terraform_aks` — Deploy AKS Cluster
-**Directory:** `azure/aks`
+#### 3. `terraform_aks` — Desplegar clúster AKS
+**Directorio:** `azure/aks`
 
-Creates the Azure Kubernetes Service cluster.
+Crea el clúster de Azure Kubernetes Service.
 
-- Uses remote backend
-- VM size: `Standard_D2s_v3`
-- Resources created:
-  - AKS Cluster with SystemAssigned identity
-  - Azure CNI network plugin
+- Usa el backend remoto
+- Tamaño de VM: `Standard_D2s_v3`
+- Recursos creados:
+  - Clúster AKS con identidad SystemAssigned
+  - Plugin de red Azure CNI
 
-#### 4. `terraform_nap` — Deploy NGINX NIC / App Protect
-**Directory:** `azure/nap`
+#### 4. `terraform_nap` — Desplegar NGINX NIC / App Protect
+**Directorio:** `azure/nap`
 
-Installs NGINX Ingress Controller with App Protect V5 on the AKS cluster using Helm/Terraform.
+Instala NGINX Ingress Controller con App Protect V5 en el clúster AKS usando Helm/Terraform.
 
-- Uses remote backend
-- Requires `NGINX_JWT` secret for authenticating with the NGINX private registry
-- Resources created:
-  - Kubernetes namespaces: `nginx-ingress`, `monitoring`
-  - NGINX Ingress Controller (Helm release)
-  - Prometheus + Grafana for monitoring
-  - Azure Load Balancer (automatically provisioned by AKS)
+- Usa el backend remoto
+- Requiere el secreto `NGINX_JWT` para autenticarse en el registro privado de NGINX
+- Recursos creados:
+  - Namespaces de Kubernetes: `nginx-ingress`, `monitoring`
+  - NGINX Ingress Controller (release de Helm)
+  - Prometheus + Grafana para monitoreo
+  - Azure Load Balancer (provisionado automáticamente por AKS)
 
-#### 5. `terraform_policy` — Deploy NGINX WAF Policy
-**Directory:** `azure/policy`
+#### 5. `terraform_policy` — Desplegar política WAF de NGINX
+**Directorio:** `azure/policy`
 
-Compiles and deploys the WAF security policy to the NGINX Ingress Controller.
+Compila y despliega la política de seguridad WAF en el NGINX Ingress Controller.
 
-Steps performed:
-1. Fetches AKS credentials via `az aks get-credentials`
-2. Installs Docker on the runner
-3. Authenticates to `private-registry.nginx.com` using `NGINX_REPO_CRT` / `NGINX_REPO_KEY`
-4. Builds the WAF compiler image (`waf-compiler-5.4.0`)
-5. Compiles `policy.json` → `compiled_policy.tgz`
-6. Copies the compiled bundle directly to the NGINX pod: `/etc/app_protect/bundles/compiled_policy.tgz`
-7. Applies Terraform to configure the policy in NIC
+Pasos que realiza:
+1. Obtiene las credenciales del AKS con `az aks get-credentials`
+2. Instala Docker en el runner
+3. Se autentica en `private-registry.nginx.com` usando `NGINX_REPO_CRT` / `NGINX_REPO_KEY`
+4. Construye la imagen del compilador WAF (`waf-compiler-5.4.0`)
+5. Compila `policy.json` → `compiled_policy.tgz`
+6. Copia el bundle compilado directamente al pod de NGINX: `/etc/app_protect/bundles/compiled_policy.tgz`
+7. Aplica Terraform para configurar la política en NIC
 
-#### 6. `terraform_arcadia` — Deploy Arcadia WebApp
-**Directory:** `azure/arcadia`
+#### 6. `terraform_arcadia` — Desplegar Arcadia WebApp
+**Directorio:** `azure/arcadia`
 
-Deploys the Arcadia Finance demo application and exposes it via the NGINX Ingress Controller.
+Despliega la aplicación de demo Arcadia Finance y la expone a través del NGINX Ingress Controller.
 
-- Outputs the `external_name` (DNS) of the Azure Load Balancer upon completion
+- Muestra el `external_name` (DNS) del Azure Load Balancer al finalizar
 
-### Terraform State
+### Estado de Terraform
 
-All jobs (except `terraform_blob`) store state in the Azure Blob Storage backend:
+Todos los jobs (excepto `terraform_blob`) almacenan el estado en el backend de Azure Blob Storage:
 
-| Parameter | Value |
+| Parámetro | Valor |
 |-----------|-------|
 | Resource Group | `<PROJECT_PREFIX>-rg` |
 | Storage Account | `<STORAGE_ACCOUNT_NAME>` |
 | Container | `<STORAGE_ACCOUNT_NAME>-container` |
 
-### Re-running the workflow
+### Re-ejecución del workflow
 
-The workflow is **idempotent**. Each job checks for changes before applying:
+El workflow es **idempotente**. Cada job verifica si hay cambios antes de aplicar:
 
-- If `terraform plan` shows `No changes.` → `terraform apply` is skipped
-- If resources already exist in Azure but not in state → they are automatically imported (blob job)
+- Si `terraform plan` muestra `No changes.` → `terraform apply` se omite
+- Si los recursos ya existen en Azure pero no en el estado → se importan automáticamente (job blob)
 
 ---
 
-## Destroy
+## Destrucción
 
-### Workflow file
+### Archivo del workflow
 
 `.github/workflows/az-destroy-nic-napv5.yaml`
 
-### Triggers
+### Disparadores
 
-| Trigger | Description |
-|---------|-------------|
-| `push` to `az-destroy-nic-napv5` branch | Automatic execution on push |
-| `workflow_dispatch` | Manual execution from GitHub Actions UI |
+| Disparador | Descripción |
+|------------|-------------|
+| `push` a la rama `az-destroy-nic-napv5` | Ejecución automática al hacer push |
+| `workflow_dispatch` | Ejecución manual desde la interfaz de GitHub Actions |
 
-### Architecture
+### Arquitectura
 
-The destroy workflow runs jobs in **reverse order** relative to the deploy:
+El workflow de destrucción ejecuta los jobs en **orden inverso** al despliegue:
 
 ```
 terraform_arcadia → terraform_policy → terraform_nap → terraform_aks → terraform_infra → terraform_blob
@@ -181,45 +181,45 @@ terraform_arcadia → terraform_policy → terraform_nap → terraform_aks → t
 
 ### Jobs
 
-#### 1. `terraform_arcadia` — Destroy Arcadia WebApp
-**Directory:** `azure/arcadia`
+#### 1. `terraform_arcadia` — Destruir Arcadia WebApp
+**Directorio:** `azure/arcadia`
 
-Destroys the Arcadia application and its Kubernetes/Azure resources.
+Destruye la aplicación Arcadia y sus recursos de Kubernetes/Azure.
 
-#### 2. `terraform_policy` — Destroy NGINX Policy
-**Directory:** `azure/policy`
+#### 2. `terraform_policy` — Destruir política NGINX
+**Directorio:** `azure/policy`
 
-Removes the WAF policy configuration from Terraform state and Azure.
+Elimina la configuración de la política WAF del estado de Terraform y de Azure.
 
-#### 3. `terraform_nap` — Destroy NGINX NIC / App Protect
-**Directory:** `azure/nap`
+#### 3. `terraform_nap` — Destruir NGINX NIC / App Protect
+**Directorio:** `azure/nap`
 
-Uninstalls the NGINX Ingress Controller and App Protect V5 Helm release. Also removes Prometheus, Grafana, namespaces, and secrets.
+Desinstala el release de Helm de NGINX Ingress Controller y App Protect V5. También elimina Prometheus, Grafana, namespaces y secretos.
 
-- Requires `NGINX_JWT` secret
+- Requiere el secreto `NGINX_JWT`
 
-#### 4. `terraform_aks` — Destroy AKS Cluster
-**Directory:** `azure/aks`
+#### 4. `terraform_aks` — Destruir clúster AKS
+**Directorio:** `azure/aks`
 
-Deletes the AKS cluster. The Azure Load Balancer is automatically removed by AKS.
+Elimina el clúster AKS. El Azure Load Balancer es eliminado automáticamente por AKS.
 
-#### 5. `terraform_infra` — Destroy Azure Infrastructure
-**Directory:** `azure/infra`
+#### 5. `terraform_infra` — Destruir infraestructura de Azure
+**Directorio:** `azure/infra`
 
-Removes the VNet, subnets, and network security groups.
+Elimina la VNet, subredes y network security groups.
 
-#### 6. `terraform_blob` — Delete Blob Storage
-**Directory:** `azure/blob`
+#### 6. `terraform_blob` — Eliminar Blob Storage
+**Directorio:** `azure/blob`
 
-Final cleanup step (does **not** use Terraform since the backend itself is being deleted):
+Paso final de limpieza (no usa Terraform ya que el propio backend está siendo eliminado):
 
-1. Retrieves the Storage Account key via Azure CLI
-2. Deletes all blobs and snapshots from the container
-3. Deletes the Blob Container
-4. Deletes the Resource Group (`az group delete --yes --no-wait`)
-5. Waits 120 seconds and verifies the Resource Group no longer exists
+1. Obtiene la clave de la Storage Account vía Azure CLI
+2. Elimina todos los blobs y snapshots del container
+3. Elimina el Blob Container
+4. Elimina el Resource Group (`az group delete --yes --no-wait`)
+5. Espera 120 segundos y verifica que el Resource Group ya no existe
 
-> **Note:** If the destroy workflow fails mid-run and resources are already partially deleted, you can manually delete the Resource Group with:
+> **Nota:** Si el workflow de destrucción falla a mitad de la ejecución y los recursos ya están parcialmente eliminados, puedes eliminar manualmente el Resource Group con:
 > ```bash
 > az group delete --name <PROJECT_PREFIX>-rg --yes
 > ```
